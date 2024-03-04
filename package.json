@@ -1,7 +1,7 @@
 {
     "name": "node-red-system-node",
     "version": "1.0.0",
-    "description": "A node describing the functionality held within the thingDirectory for a WoT system",
+    "description": "A node describing the functionality held within the ThingDirectory for a WoT system",
     "main": "system-node.js",
     "directories": {
         "doc": "docs"

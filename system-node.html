@@ -7,9 +7,23 @@
         },
         inputs: 1,
         outputs: 1,
-        icon: "file.svg",
+        icon: "bridge.svg",
         label: function () {
             return this.name || "system-node";
+        },
+        credentials: {
+            thingDirectoryURI: {type:"text", required:true},
+            thingFunction: {type:"text", required:true},
+            outputToMsg: {type:"boolean"}
+        },
+        oneditsave: function () {
+            this.exampleText = this.editor.getValue();
+            this.editor.destroy();
+            delete this.editor;
+        },
+        oneditcancel: function () {
+            this.editor.destroy();
+            delete this.editor;
         }
     });
 </script>
@@ -19,8 +33,22 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
+    <div class="form-row">
+        <label for="node-input-thingDirectoryURI"><i class="fa fa-tag"></i> Thing Directory</label>
+        <input type="text" id="URIInput" placeholder="http://localhost:8080/td">
+    </div>
+    <div class="form-row">
+        <label for="node-input-Function"><i class="fa fa-tag"></i> Thing Function</label>
+        <select name="functionSelect" id="functionSelect">
+            <option value="placeholder">Placeholder</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-outputToMsg"><i class="fa fa-tag"></i> Output to msg.payload</label>
+        <input type="checkbox" checked id="outputToMsg" name="outputToMsg" value="true">
+    </div>
 </script>
 
 <script type="text/html" data-help-name="system-node">
-    <p>A simple node that converts the message payloads into all lower-case characters</p>
+    <p>A node describing all Things held within its ThingDirectory</p>
 </script>
