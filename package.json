@@ -1,0 +1,23 @@
+{
+    "name": "node-red-system-node",
+    "version": "1.0.0",
+    "description": "A node describing the functionality held within the thingDirectory for a WoT system",
+    "main": "system-node.js",
+    "directories": {
+        "doc": "docs"
+    },
+    "scripts": {
+        "test": "node \"test/**/*_spec.js\""
+    },
+    "author": "",
+    "license": "ISC",
+    "node-red": {
+        "nodes": {
+            "system-node": "system-node.js"
+        }
+    },
+    "devDependencies": {
+        "node-red": "^3.1.6",
+        "node-red-node-test-helper": "^0.3.3"
+    }
+}
