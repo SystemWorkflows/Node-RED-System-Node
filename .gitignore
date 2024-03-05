@@ -1,2 +1,4 @@
-install_in_node.sh
 node_modules
+*.cmd
+*.sh
+.vscode

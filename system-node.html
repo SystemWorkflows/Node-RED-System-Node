@@ -3,7 +3,10 @@
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            name: { value: "" }
+            name: { value: "" },
+            thingDirectoryURI: { value: "http://localhost:8080/td" },
+            thingFunction: { value: "" },
+            outputToMsg: { value: true }
         },
         inputs: 1,
         outputs: 1,
@@ -11,19 +14,74 @@
         label: function () {
             return this.name || "system-node";
         },
-        credentials: {
-            thingDirectoryURI: {type:"text", required:true},
-            thingFunction: {type:"text", required:true},
-            outputToMsg: {type:"boolean"}
-        },
-        oneditsave: function () {
-            this.exampleText = this.editor.getValue();
-            this.editor.destroy();
-            delete this.editor;
-        },
-        oneditcancel: function () {
-            this.editor.destroy();
-            delete this.editor;
+        oneditprepare: function () {
+            $("#node-input-thingDirectoryURI").change(function (event) {
+                let input = $(this).val()
+
+                let emptyInput = ["", undefined, null].includes(input);
+                displayFunctionOption(!emptyInput);
+
+                if (!emptyInput) {
+                    refreshDirectoryFunctions(input)
+                }
+            });
+
+            function showFunctionOption() {
+                console.log("showing");
+                let tdURI = $("#node-input-thingDirectoryURI").val();
+
+                // parse TD
+                // let actions = JSON.parse(config.td).actions || {}
+
+                // // delete old properties
+                // let select = document.getElementById("node-input-property");
+                // while (select.firstChild) select.removeChild(select.firstChild);
+
+                // // Populate with new properties
+                // let indx = 0;
+                // Object.keys(properties).forEach(property => {
+                //     if (properties[property].writeOnly) return;
+                //     let opt = document.createElement('option');
+                //     opt.value = property;
+                //     opt.innerHTML = property;
+                //     select.appendChild(opt);
+                //     if (property === node.property) {
+                //         select.selectedIndex = indx;
+                //     }
+                //     indx++;
+                // });
+
+                // Show containing div
+                $("div#function-row").show();
+            }
+
+            function hideFunctionOption() {
+                console.log("hiding");
+                $("#node-input-thingFunction").innerText = "";
+                this.thingFunction = "";
+                $("div#function-row").hide();
+            }
+
+            function displayFunctionOption(on) {
+                if (on) {
+                    showFunctionOption();
+                } else {
+                    hideFunctionOption();
+                }
+            }
+
+            /**
+             * @returns Boolean, the completion of this functionality
+             */
+            function refreshDirectoryFunctions(uri) {
+                console.log("refreshing");
+                //TODO: Get URIs from ThingDirectory, get functions, add function (mapped to thing URI) to functionSelect (select html object)
+
+                displayFunctionOption(!(["", undefined, null].includes(uri)));
+
+                // this.status({fill:"red",shape:"ring",text:"disconnected"});
+                // this.status({fill:"green",shape:"dot",text:"connected"});
+            }
         }
     });
 </script>
@@ -35,17 +93,17 @@
     </div>
     <div class="form-row">
         <label for="node-input-thingDirectoryURI"><i class="fa fa-tag"></i> Thing Directory</label>
-        <input type="text" id="URIInput" placeholder="http://localhost:8080/td">
+        <input type="text" id="node-input-thingDirectoryURI" placeholder="http://localhost:8080/td">
     </div>
-    <div class="form-row">
-        <label for="node-input-Function"><i class="fa fa-tag"></i> Thing Function</label>
-        <select name="functionSelect" id="functionSelect">
-            <option value="placeholder">Placeholder</option>
+    <div id="function-row" class="form-row">
+        <label for="node-input-thingFunction"><i class="fa fa-tag"></i> Thing Function</label>
+        <select name="functionSelect" id="node-input-thingFunction">
+            <option>Placeholder</option>
         </select>
     </div>
     <div class="form-row">
         <label for="node-input-outputToMsg"><i class="fa fa-tag"></i> Output to msg.payload</label>
-        <input type="checkbox" checked id="outputToMsg" name="outputToMsg" value="true">
+        <input type="checkbox" checked id="node-input-outputToMsg" name="outputToMsg" value="true">
     </div>
 </script>
 
