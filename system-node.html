@@ -6,6 +6,7 @@
             name: { value: "" },
             thingDirectoryURI: { value: "http://localhost:8080/td" },
             thingFunction: { value: "" },
+            thingFunctionValue: { value: {} },
             outputToMsg: { value: true }
         },
         inputs: 1,
@@ -28,12 +29,10 @@
             });
 
             function showFunctionOption() {
-                console.log("showing");
                 $("div#function-row").show();
             }
 
             function hideFunctionOption() {
-                console.log("hiding");
                 $("#node-input-thingFunction").innerText = "";
                 this.thingFunction = "";
                 $("div#function-row").hide();
@@ -51,23 +50,19 @@
              * @returns Boolean, the completion of this functionality
              */
             async function populateFunctions(tdURI) {
-                console.log("refreshing");
-
                 emptyFunctionsSelect();
 
-                //TODO: Get URIs from ThingDirectory, get functions, add function (mapped to thing URI) to functionSelect (select html object)
-
                 let thingURIs = await fetchThingURIs(tdURI);
-
-                console.log("thingURIs");
-                console.log(thingURIs);
-
                 let actionMap = await getActions(thingURIs);
 
-                console.log("actionMap");
-                console.log(actionMap);
-
                 let functionSelect = document.getElementById("node-input-thingFunction");
+
+                functionSelect.addEventListener("change", () => { //Set thingFunction value to new selection
+                    let selection = functionSelect.options[functionSelect.selectedIndex];
+
+                    this.thingFunction = selection.text;
+                    this.thingFunctionValue = selection.value;
+                });
 
                 let index = 0;
                 for (let action of Object.keys(actionMap)) {
@@ -91,17 +86,11 @@
             }
 
             async function fetchThingURIs(tdURI) {
-                console.log("fetching from " + tdURI);
-
                 return fetch(tdURI + "/actions/getURIs", {
                     method: "POST"
                 })
                 .then((response) => {
-                    let responseJSON = response.json();
-
-                    console.log("responseJSON :");
-                    console.log(responseJSON);
-                    return responseJSON;
+                    return response.json();
                 })
                 .catch((reason) => {
                     throw reason;
@@ -117,13 +106,9 @@
 
                 for (let uri of uriList) {
                     let actions = await fetchObject(uri, "actions");
-                    console.log("actions");
-                    console.log(actions);
-
                     if(actions === undefined) continue;
 
                     for (let action of Object.keys(actions)) {
-                        console.log("action : " + action);
                         uriMap[action] = uri; //Note: Will override an action if a duplicate occurs
                     }
                 }
@@ -136,11 +121,7 @@
                     method: "GET"
                 })
                 .then((response) => {
-                    let responseJSON = response.json();
-
-                    console.log("responseJSON :");
-                    console.log(responseJSON);
-                    return responseJSON;
+                    return response.json();
                 })
                 .catch((reason) => {
                     throw reason;
