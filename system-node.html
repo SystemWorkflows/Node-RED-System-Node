@@ -15,13 +15,13 @@
             return this.name || "system-node";
         },
         oneditprepare: function () {
-            $("#node-input-thingDirectoryURI").change(function (event) {
+            $("#node-input-thingDirectoryURI").change(async function (event) {
                 let input = $(this).val();
 
                 let emptyInput = ["", undefined, null].includes(input);
 
                 if (!emptyInput) {
-                    populateFunctions(input);
+                    await populateFunctions(input);
                 }
 
                 displayFunctionOption(!emptyInput);
@@ -50,60 +50,103 @@
             /**
              * @returns Boolean, the completion of this functionality
              */
-            function populateFunctions(tdURI) {
+            async function populateFunctions(tdURI) {
                 console.log("refreshing");
 
                 emptyFunctionsSelect();
 
                 //TODO: Get URIs from ThingDirectory, get functions, add function (mapped to thing URI) to functionSelect (select html object)
 
-                let thingURIs = fetchThingURIs(tdURI)
+                let thingURIs = await fetchThingURIs(tdURI);
 
-                // this.status({fill:"red",shape:"ring",text:"disconnected"});
-                // this.status({fill:"green",shape:"dot",text:"connected"});
+                console.log("thingURIs");
+                console.log(thingURIs);
 
-                // parse TD
-                // let actions = JSON.parse(config.td).actions || {}
+                let actionMap = await getActions(thingURIs);
 
-                // // delete old properties
-                // let select = document.getElementById("node-input-property");
-                // while (select.firstChild) select.removeChild(select.firstChild);
+                console.log("actionMap");
+                console.log(actionMap);
 
-                // // Populate with new properties
-                // let indx = 0;
-                // Object.keys(properties).forEach(property => {
-                //     if (properties[property].writeOnly) return;
-                //     let opt = document.createElement('option');
-                //     opt.value = property;
-                //     opt.innerHTML = property;
-                //     select.appendChild(opt);
-                //     if (property === node.property) {
-                //         select.selectedIndex = indx;
-                //     }
-                //     indx++;
-                // });
+                let functionSelect = document.getElementById("node-input-thingFunction");
 
-                // Show containing div
+                let index = 0;
+                for (let action of Object.keys(actionMap)) {
+                    let option = document.createElement('option');
+
+                    option.value = {action : actionMap[action]}; //Map of action to Thing
+                    option.innerHTML = action;
+
+                    functionSelect.appendChild(option);
+
+                    if (action === this.thingFunction) {
+                        functionSelect.selectedIndex = index;
+                    }
+
+                    index++;
+                }
             }
 
             function emptyFunctionsSelect() {
                 $("select#node-input-thingFunction").empty();
             }
 
-            function fetchThingURIs(tdURI) {
+            async function fetchThingURIs(tdURI) {
                 console.log("fetching from " + tdURI);
 
-                fetch(tdURI + "/actions/getURIs", {
+                return fetch(tdURI + "/actions/getURIs", {
                     method: "POST"
                 })
                 .then((response) => {
-                    console.log("response :");
-                    console.log(response.json());
-                    return response.json();
+                    let responseJSON = response.json();
+
+                    console.log("responseJSON :");
+                    console.log(responseJSON);
+                    return responseJSON;
                 })
                 .catch((reason) => {
-                    // done(reason); //TODO: Throw node-red Error
+                    throw reason;
                 });
+            }
+
+            /**
+             * Note: No action names may be duplicated in the system
+             * @returns A map of action to the Thing URIs they are associated with
+             */
+            async function getActions(uriList) {
+                let uriMap = {}; //Maps actions to the URIs they are associated with
+
+                for (let uri of uriList) {
+                    let actions = await fetchObject(uri, "actions");
+                    console.log("actions");
+                    console.log(actions);
+
+                    if(actions === undefined) continue;
+
+                    for (let action of Object.keys(actions)) {
+                        console.log("action : " + action);
+                        uriMap[action] = uri; //Note: Will override an action if a duplicate occurs
+                    }
+                }
+
+                return uriMap;
+            }
+
+            async function fetchObject(uri, key) {
+                let response = await fetch(uri, {
+                    method: "GET"
+                })
+                .then((response) => {
+                    let responseJSON = response.json();
+
+                    console.log("responseJSON :");
+                    console.log(responseJSON);
+                    return responseJSON;
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
+
+                return response[key]; //Only allows keys from top-level
             }
         }
     });
