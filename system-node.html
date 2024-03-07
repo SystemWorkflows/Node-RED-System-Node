@@ -11,11 +11,23 @@
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
-        inputLabels: function () { //TODO: Make this work so that the paramaters are shown in the input labels for the node
-            try {
-                return formParameterText(thingFunctionValue);
-            } catch {
-                return "";
+        inputLabels: function () {
+            let text = formParameterText(JSON.parse(this.thingFunctionValue).params);
+
+            if(text === "") {
+                text = "No parameters";
+            }
+
+            return text;
+
+            function formParameterText(params) {
+                let text = "";
+
+                for (let parameter of Object.keys(params)) {
+                    text += parameter + " : " + params[parameter] + "\n";
+                }
+
+                return text.substring(0, text.length - 1);
             }
         },
         outputs: 1,
@@ -26,7 +38,7 @@
         oneditprepare: function () {
             var node = this;
 
-            if(node.thingFunctionValue === undefined) { //Ensure value is added to this node object
+            if(node.thingFunctionValue === undefined) { //Ensures value is added to this node object
                 node.thingFunctionValue = "";
             }
             else {
@@ -69,7 +81,15 @@
             async function populateFunctions(tdURI, node) {
                 emptyFunctionsSelect();
 
-                let thingURIs = await fetchThingURIs(tdURI);
+                let thingURIs;
+
+                try {
+                    thingURIs = await fetchThingURIs(tdURI);
+                }
+                catch {
+                    //TODO: Handle failure (display error, with icon and notifiction)
+                }
+
                 let actionMap = await getActions(thingURIs);
 
                 let functionSelect = document.getElementById("node-input-thingFunction");

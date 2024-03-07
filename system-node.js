@@ -6,7 +6,7 @@ module.exports = function (RED) {
 
         var outputToMsg = config.outputToMsg;
 
-        node.on('input', async function (msg, send, done) {
+        node.on('input', async function (msg, send, done) { //TODO: Check actions with parameters work
             let thingFunctionValue = JSON.parse(config.thingFunctionValue);
 
             let thingURI = thingFunctionValue.uri;
