@@ -6,7 +6,7 @@ module.exports = function (RED) {
 
         var outputToMsg = config.outputToMsg;
 
-        node.on('input', async function (msg) {
+        node.on('input', async function (msg, send, done) {
             let thingFunctionValue = JSON.parse(config.thingFunctionValue);
             console.log("thingFunctionValue");
             console.log(thingFunctionValue);

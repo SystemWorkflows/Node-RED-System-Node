@@ -7,7 +7,8 @@
             thingDirectoryURI: { value: "" },
             thingFunction: { value: "" },
             thingFunctionValue: { value: "" },
-            outputToMsg: { value: true }
+            outputToMsg: { value: true },
+            redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
         outputs: 1,
@@ -18,11 +19,9 @@
         oneditprepare: function () {
             var node = this;
 
-            console.log(node.thingFunctionValue);
             if(node.thingFunctionValue === undefined) { //Ensure value is added to this node object
                 node.thingFunctionValue = "";
             }
-            console.log(node.thingFunctionValue);
 
             $("#node-input-thingDirectoryURI").on("change", async function (event) {
                 let input = $(this).val();
@@ -75,6 +74,7 @@
                     this.thingFunctionValue = actionJSON;
                     node.thingFunctionValue = actionJSON;
 
+                    enableDeploy();
                     console.log(node.thingFunctionValue);
                 });
 
@@ -90,8 +90,7 @@
 
                     functionSelect.appendChild(option);
 
-                    console.log(action + "     " + node.thingFunction);
-                    if (action === node.thingFunction) {
+                    if (action === node.thingFunction) { //Select the thingFunction option
                         functionSelect.selectedIndex = index;
                     }
 
@@ -147,6 +146,17 @@
 
                 return response[key]; //Only allows keys from top-level
             }
+
+            function enableDeploy() {
+                let holder = document.getElementById("node-input-redeploy");
+                
+                if (holder.value !== "true") {
+                    holder.value = "true";
+                }
+                else {
+                    holder.value = "false";
+                }
+            }
         }
     });
 </script>
@@ -170,6 +180,7 @@
         <label for="node-input-outputToMsg"><i class="fa fa-tag"></i> Output to msg.payload</label>
         <input type="checkbox" checked id="node-input-outputToMsg" name="outputToMsg">
     </div>
+    <input type="hidden" id="node-input-redeploy" name="holder">
 </script>
 
 <script type="text/html" data-help-name="system-node">
