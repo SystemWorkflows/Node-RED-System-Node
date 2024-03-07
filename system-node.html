@@ -11,7 +11,13 @@
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
-        inputLabels: "PLACEHOLDER",
+        inputLabels: function () { //TODO: Make this work so that the paramaters are shown in the input labels for the node
+            try {
+                return formParameterText(thingFunctionValue);
+            } catch {
+                return "";
+            }
+        },
         outputs: 1,
         icon: "bridge.svg",
         label: function () {
@@ -22,6 +28,9 @@
 
             if(node.thingFunctionValue === undefined) { //Ensure value is added to this node object
                 node.thingFunctionValue = "";
+            }
+            else {
+                updateParameterLabels(JSON.parse(node.thingFunctionValue));
             }
 
             $("#node-input-thingDirectoryURI").on("change", async function (event) {
@@ -178,12 +187,19 @@
                 let params = actionObject["params"];
 
                 let paramHolder = document.getElementById("label-parameters");
-                paramHolder.innerText = formParameterText(params);
+                let paramText = formParameterText(params);
+
+                if(paramText === "") {
+                    paramHolder.innerText = "No parameters";
+                }
+                else {
+                    paramHolder.innerText = paramText;
+                }
             }
 
             function formParameterText(params) {
                 let text = "";
-                
+
                 for (let parameter of Object.keys(params)) {
                     text += parameter + " : " + params[parameter] + "\n";
                 }
