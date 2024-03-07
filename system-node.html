@@ -11,6 +11,7 @@
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
+        inputLabels: "PLACEHOLDER",
         outputs: 1,
         icon: "bridge.svg",
         label: function () {
@@ -66,16 +67,18 @@
 
                 functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
                     let selection = functionSelect.options[functionSelect.selectedIndex];
+                    let actionObject = $(selection).data("value");
 
                     node.thingFunction = selection.text;
                     
-                    let actionJSON = JSON.stringify($(selection).data("value")); //Access object in select's data-value
+                    let actionJSON = JSON.stringify(actionObject); //Access object in select's data-value
 
                     this.thingFunctionValue = actionJSON;
                     node.thingFunctionValue = actionJSON;
 
+                    updateParameterLabels(actionObject);
+
                     enableDeploy();
-                    console.log(node.thingFunctionValue);
                 });
 
                 let index = 0;
@@ -83,9 +86,11 @@
                     let option = document.createElement('option');
 
                     $(option).data("value", {
-                        uri : actionMap[action],
-                        action : action
+                        action : action,
+                        uri : actionMap[action]["uri"],
+                        params : actionMap[action]["params"]
                     }); //Map of action to Thing in data-value
+
                     option.innerHTML = action;
 
                     functionSelect.appendChild(option);
@@ -116,17 +121,28 @@
 
             /**
              * Note: No action names may be duplicated in the system
-             * @returns A map of action to the Thing URIs they are associated with
+             * @returns A map of action to the Thing URIs and list of parameters (along with their types is provided)
              */
             async function getActions(uriList) {
                 let uriMap = {}; //Maps actions to the URIs they are associated with
 
                 for (let uri of uriList) {
                     let actions = await fetchObject(uri, "actions");
-                    if(actions === undefined) continue;
+                    if (actions === undefined) continue;
 
                     for (let action of Object.keys(actions)) {
-                        uriMap[action] = uri; //Note: Will override an action if a duplicate occurs
+                        uriMap[action] = {
+                            "uri" : uri,
+                            "params" : {}
+                        }; //Note: Will override an action if a duplicate occurs
+
+                        let params = actions[action]["input"];
+                        if (params === undefined || params === null) continue;
+
+                        for (let parameter of Object.keys(params)) {
+                            let type = actions[action]["input"][parameter]["type"];
+                            uriMap[action]["params"][parameter] = type; //Map parameter to it's type
+                        }
                     }
                 }
 
@@ -157,6 +173,23 @@
                     holder.value = "false";
                 }
             }
+
+            function updateParameterLabels(actionObject) {
+                let params = actionObject["params"];
+
+                let paramHolder = document.getElementById("label-parameters");
+                paramHolder.innerText = formParameterText(params);
+            }
+
+            function formParameterText(params) {
+                let text = "";
+                
+                for (let parameter of Object.keys(params)) {
+                    text += parameter + " : " + params[parameter] + "\n";
+                }
+
+                return text.substring(0, text.length - 1);
+            }
         }
     });
 </script>
@@ -175,6 +208,11 @@
         <select name="functionSelect" id="node-input-thingFunction">
             <option>Placeholder</option>
         </select>
+
+        <div class="form-row">
+            <label for="label-parameters"> Parameters</label>
+            <label id="label-parameters"></label>
+        </div>
     </div>
     <div class="form-row">
         <label for="node-input-outputToMsg"><i class="fa fa-tag"></i> Output to msg.payload</label>

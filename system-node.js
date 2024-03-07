@@ -8,13 +8,9 @@ module.exports = function (RED) {
 
         node.on('input', async function (msg, send, done) {
             let thingFunctionValue = JSON.parse(config.thingFunctionValue);
-            console.log("thingFunctionValue");
-            console.log(thingFunctionValue);
 
             let thingURI = thingFunctionValue.uri;
             let action = thingFunctionValue.action;
-
-            console.log(thingFunctionValue);
 
             let output = await fetch(
                 thingURI + "/actions/" + action, 
