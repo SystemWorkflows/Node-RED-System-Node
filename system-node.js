@@ -2,43 +2,40 @@ module.exports = function (RED) {
     function SystemNode(config) {
         RED.nodes.createNode(this, config);
 
-        //Node credentials
         var node = this;
 
-        // var thingDirectoryURI = node.credentials.thingDirectoryURI;
-        // var thingFunction = node.credentials.thingFunction;
-        // var outputToMsg = node.credentials.outputToMsg;
+        var outputToMsg = config.outputToMsg;
 
-        //Variables
-        var currentThingURI = "";
+        node.on('input', async function (msg) {
+            let thingFunctionValue = JSON.parse(config.thingFunctionValue);
+            console.log("thingFunctionValue");
+            console.log(thingFunctionValue);
 
-        // node.on('input', function (msg) {
-        //     try {
-        //         let output = fetch(
-        //             currentThingURI, 
-        //             {
-        //                 method: "POST",
-        //                 headers: new Headers({
-        //                     "Access-Control-Allow-Origin": "*",
-        //                 }),
-        //                 body: msg.payload,
-        //             }
-        //         );
-        //     }
-        //     catch {
-        //         //TODO: Handle error for Node-RED
-        //     }
+            let thingURI = thingFunctionValue.uri;
+            let action = thingFunctionValue.action;
 
-        //     if (outputToMsg) {
-        //         msg.payload = output;
-        //     }
+            console.log(thingFunctionValue);
 
-        //     node.send(msg);
-        // });
+            let output = await fetch(
+                thingURI + "/actions/" + action, 
+                {
+                    method: "POST",
+                    headers: new Headers({
+                        "Access-Control-Allow-Origin": "*",
+                    }),
+                    body: msg.payload //Should be a list of parameters
+                }
+            )
+            .catch((reason) => {
+                node.error("Failed to invoke action", reason);
+            });
 
-        // node.on("oneditsave", function () {
-        //     //route function to thing providing it
-        // });
+            if (outputToMsg) {
+                msg.payload = output;
+            }
+
+            node.send(msg);
+        });
     }
 
     RED.nodes.registerType("system-node", SystemNode);

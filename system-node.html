@@ -4,9 +4,9 @@
         color: '#a6bbcf',
         defaults: {
             name: { value: "" },
-            thingDirectoryURI: { value: "http://localhost:8080/td" },
+            thingDirectoryURI: { value: "" },
             thingFunction: { value: "" },
-            thingFunctionValue: { value: {} },
+            thingFunctionValue: { value: "" },
             outputToMsg: { value: true }
         },
         inputs: 1,
@@ -16,13 +16,21 @@
             return this.name || "system-node";
         },
         oneditprepare: function () {
-            $("#node-input-thingDirectoryURI").change(async function (event) {
+            var node = this;
+
+            console.log(node.thingFunctionValue);
+            if(node.thingFunctionValue === undefined) { //Ensure value is added to this node object
+                node.thingFunctionValue = "";
+            }
+            console.log(node.thingFunctionValue);
+
+            $("#node-input-thingDirectoryURI").on("change", async function (event) {
                 let input = $(this).val();
 
                 let emptyInput = ["", undefined, null].includes(input);
 
                 if (!emptyInput) {
-                    await populateFunctions(input);
+                    await populateFunctions(input, node);
                 }
 
                 displayFunctionOption(!emptyInput);
@@ -49,7 +57,7 @@
             /**
              * @returns Boolean, the completion of this functionality
              */
-            async function populateFunctions(tdURI) {
+            async function populateFunctions(tdURI, node) {
                 emptyFunctionsSelect();
 
                 let thingURIs = await fetchThingURIs(tdURI);
@@ -57,23 +65,33 @@
 
                 let functionSelect = document.getElementById("node-input-thingFunction");
 
-                functionSelect.addEventListener("change", () => { //Set thingFunction value to new selection
+                functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
                     let selection = functionSelect.options[functionSelect.selectedIndex];
 
-                    this.thingFunction = selection.text;
-                    this.thingFunctionValue = selection.value;
+                    node.thingFunction = selection.text;
+                    
+                    let actionJSON = JSON.stringify($(selection).data("value")); //Access object in select's data-value
+
+                    this.thingFunctionValue = actionJSON;
+                    node.thingFunctionValue = actionJSON;
+
+                    console.log(node.thingFunctionValue);
                 });
 
                 let index = 0;
                 for (let action of Object.keys(actionMap)) {
                     let option = document.createElement('option');
 
-                    option.value = {action : actionMap[action]}; //Map of action to Thing
+                    $(option).data("value", {
+                        uri : actionMap[action],
+                        action : action
+                    }); //Map of action to Thing in data-value
                     option.innerHTML = action;
 
                     functionSelect.appendChild(option);
 
-                    if (action === this.thingFunction) {
+                    console.log(action + "     " + node.thingFunction);
+                    if (action === node.thingFunction) {
                         functionSelect.selectedIndex = index;
                     }
 
@@ -150,7 +168,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-outputToMsg"><i class="fa fa-tag"></i> Output to msg.payload</label>
-        <input type="checkbox" checked id="node-input-outputToMsg" name="outputToMsg" value="true">
+        <input type="checkbox" checked id="node-input-outputToMsg" name="outputToMsg">
     </div>
 </script>
 
