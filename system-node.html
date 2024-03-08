@@ -41,7 +41,15 @@
         },
         icon: "bridge.svg",
         label: function () {
-            return this.name || "system-node";
+            if (this.name) {
+                return this.name;
+            }
+            else if (this.thingFunctionValue) {
+                return JSON.parse(this.thingFunctionValue).action;
+            }
+            else {
+                return "system-node";
+            }
         },
         oneditprepare: function () {
             var node = this;
