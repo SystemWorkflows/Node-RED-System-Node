@@ -1,12 +1,12 @@
 module.exports = function (RED) {
-    function SystemNode(config) {
+    function SystemEventNode(config) {
         RED.nodes.createNode(this, config);
 
         var node = this;
 
         var outputToMsg = config.outputToMsg;
 
-        node.on('input', async function (msg, send, done) { //TODO: Check actions with parameters work
+        node.on('input', async function (msg, send, done) {
             let thingFunctionValue = JSON.parse(config.thingFunctionValue);
 
             let thingURI = thingFunctionValue.uri;
@@ -34,5 +34,5 @@ module.exports = function (RED) {
         });
     }
 
-    RED.nodes.registerType("system-node", SystemNode);
+    RED.nodes.registerType("system-event-node", SystemEventNode);
 }

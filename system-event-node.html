@@ -1,0 +1,279 @@
+<script type="text/javascript">
+    RED.nodes.registerType('system-event-node', {
+        category: 'Web of Things',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: "" },
+            thingDirectoryURI: { value: "" },
+            thingEvent: { value: "" },
+            thingEventValue: { value: "" },
+            outputToMsg: { value: true },
+            redeploy: { value: "false" } //Only used to trigger UI redeploy
+        },
+        inputs: 0,
+        outputs: 1,
+        outputLabels: function () {
+            try {
+               return JSON.parse(this.thingEventValue).output["type"];
+            }
+            catch {
+                return "undefined";
+            }
+        },
+        icon: "bridge.svg",
+        label: function () {
+            if (this.name) {
+                return this.name;
+            }
+            else if (this.thingEventValue) {
+                return JSON.parse(this.thingEventValue).action;
+            }
+            else {
+                return "system-event-node";
+            }
+        },
+        oneditprepare: function () {
+            var node = this;
+
+            // hideFunctionOption(); //TODO: Buffer options whilst waiting for connection to Thing Directory
+
+            if(node.thingEventValue === undefined) { //Ensures value is added to this node object
+                node.thingEventValue = "";
+            }
+            else {
+                let actionObj = JSON.parse(node.thingEventValue);
+
+                updateOutputLabel(actionObj)
+            }
+
+            $("#node-input-thingDirectoryURI").on("change", async function (event) {
+                let input = $(this).val();
+
+                let emptyInput = ["", undefined, null].includes(input);
+
+                if (!emptyInput) {
+                    await populateEvents(input, node);
+                }
+
+                displayEventOption(!emptyInput);
+            });
+
+            function showEventOption() {
+                $("div#event-row").show();
+            }
+
+            function hideEventOption() {
+                $("#node-input-thingEvent").innerText = "";
+                this.thingEvent = "";
+                $("div#event-row").hide();
+            }
+
+            function displayEventOption(on) {
+                if (on) {
+                    showEventOption();
+                } else {
+                    hideEventOption();
+                }
+            }
+
+            /**
+             * @returns Boolean, the completion of this functionality
+             */
+            async function populateEvents(tdURI, node) {
+                emptyEventsSelect();
+
+                let thingURIs;
+
+                try {
+                    thingURIs = await fetchThingURIs(tdURI);
+                }
+                catch (reason) {
+                    //TODO: Handle failure (display error, with icon and notifiction)
+                    // node.status({fill:"red",shape:"ring",text:"Disconnected from Thing directory"});
+                    // error("Failed to connect to Thing Directory");
+                    return reason;
+                }
+
+                let actionMap = await getEvents(thingURIs);
+
+                let eventSelect = document.getElementById("node-input-thingEvent");
+
+                if (Object.keys(actionMap).length === 0) { //No events
+                    let option = document.createElement("option");
+                    option.innerHTML = "No events available";
+
+                    eventSelect.appendChild(option);
+                    eventSelect.disabled = true;
+
+                    // node.status({fill:"yellow",shape:"ring",text:"No actions found"}); //TODO: Allow status changes
+
+                    document.getElementById("label-output").innerText = "";
+
+                    return;
+                }
+                
+                eventSelect.disabled = false;
+
+                // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
+
+                eventSelect.addEventListener("change", async function () { //Set thingEvent value to new selection
+                    let selection = eventSelect.options[eventSelect.selectedIndex];
+                    let eventObject = $(selection).data("value");
+
+                    node.thingEvent = selection.text;
+                    
+                    let eventJSON = JSON.stringify(eventObject); //Access object in select's data-value
+
+                    this.thingEventValue = eventJSON;
+                    node.thingEventValue = eventJSON;
+
+                    //TODO: Use description and title
+                    updateOutputLabel(eventObject)
+
+                    enableDeploy();
+                });
+
+                let index = 0;
+                for (let action of Object.keys(actionMap)) {
+                    let option = document.createElement('option');
+
+                    actionMap[action]["action"] = action; //Move action name from a key to a value
+                    $(option).data("value", actionMap[action]);
+
+                    option.innerHTML = action;
+
+                    eventSelect.appendChild(option);
+
+                    if (action === node.thingEvent) { //Select the thingEvent option
+                        eventSelect.selectedIndex = index;
+                    }
+
+                    index++;
+                }
+            }
+
+            function emptyEventsSelect() {
+                $("select#node-input-thingEvent").empty();
+            }
+
+            async function fetchThingURIs(tdURI) {
+                return fetch(tdURI + "/actions/getURIs", {
+                    method: "POST"
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
+            }
+
+            /**
+             * Note: No event names may be duplicated in the system
+             * @returns A map of events to the Thing URIs, output type, description and title
+             */
+            async function getEvents(uriList) {
+                let uriMap = {}; //Maps actions to the URIs they are associated with
+
+                for (let uri of uriList) {
+                    let events = await fetchObject(uri, "events");
+                    if (events === undefined) continue;
+
+                    for (let event of Object.keys(events)) {
+                        uriMap[event] = {
+                            "uri" : uri,
+                            "output" : undefined,
+                            "description" : undefined,
+                            "title" : undefined
+                        }; //Note: Will override an event if a duplicate occurs
+
+                        let eventObj = events[event];
+
+                        uriMap[event]["output"] = eventObj["output"];
+                        uriMap[event]["description"] = eventObj["description"];
+                        uriMap[event]["title"] = eventObj["title"];
+                    }
+                }
+
+                console.log(uriMap);
+                return uriMap;
+            }
+
+            async function fetchObject(uri, key) {
+                let response = await fetch(uri, {
+                    method: "GET"
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
+
+                return response[key]; //Only allows keys from top-level
+            }
+
+            function enableDeploy() {
+                let holder = document.getElementById("node-input-redeploy");
+                
+                if (holder.value !== "true") {
+                    holder.value = "true";
+                }
+                else {
+                    holder.value = "false";
+                }
+            }
+
+            function updateOutputLabel(actionObject) {
+                let output = actionObject["output"];
+
+                let outputHolder = document.getElementById("label-output");
+
+                try {
+                    outputHolder.innerText = output["type"];
+                }
+                catch {
+                    outputHolder.innerText = "undefined";
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+    .parameterLabel {
+        vertical-align: top;
+        width: 60%;
+    }
+
+    #label-output {
+        width: 60%;
+    }
+</style>
+
+<script type="text/html" data-template-name="system-event-node">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-thingDirectoryURI"><i class="fa fa-tag"></i> Thing Directory</label>
+        <input type="text" id="node-input-thingDirectoryURI" placeholder="http://localhost:8080/td">
+    </div>
+    <div id="event-row" class="form-row">
+        <label for="node-input-thingEvent"><i class="fa fa-tag"></i> Event</label>
+        <select name="eventSelect" id="node-input-thingEvent">
+            <option>Placeholder</option>
+        </select>
+
+        <div class="form-row">
+            <label for="label-output"> Output Type</label>
+            <label id="label-output" class="parameterLabel"></label>
+        </div>
+    </div>
+    <input type="hidden" id="node-output-redeploy" name="holder">
+</script>
+
+<script type="text/html" data-help-name="system-event-node">
+    <p>A node describing all Thing events held within its ThingDirectory</p>
+</script>

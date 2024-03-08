@@ -1,18 +1,25 @@
 <script type="text/javascript">
-    RED.nodes.registerType('system-node', {
-        category: 'function',
+    RED.nodes.registerType('system-action-node', {
+        category: 'Web of Things',
         color: '#a6bbcf',
         defaults: {
             name: { value: "" },
             thingDirectoryURI: { value: "" },
             thingFunction: { value: "" },
-            thingFunctionValue: { value: "" },
+            thingFunctionValue: { value: "" }, //TODO: Change use of "Function" to "Action" for consistency of wording
             outputToMsg: { value: true },
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
         inputLabels: function () {
-            let text = formParameterText(JSON.parse(this.thingFunctionValue).params);
+            let text = "";
+
+            try {
+                text = formParameterText(JSON.parse(this.thingFunctionValue).params);
+            }
+            catch {
+                return "";
+            }
 
             if(text === "") {
                 text = "No parameters";
@@ -48,7 +55,7 @@
                 return JSON.parse(this.thingFunctionValue).action;
             }
             else {
-                return "system-node";
+                return "system-action-node";
             }
         },
         oneditprepare: function () {
@@ -60,10 +67,15 @@
                 node.thingFunctionValue = "";
             }
             else {
-                let actionObj = JSON.parse(node.thingFunctionValue);
+                try {
+                    let actionObj = JSON.parse(node.thingFunctionValue);
 
-                updateParameterLabels(actionObj);
-                updateOutputLabel(actionObj)
+                    updateParameterLabels(actionObj);
+                    updateOutputLabel(actionObj);
+                }
+                catch {
+                    node.thingFunctionValue = "";
+                }
             }
 
             $("#node-input-thingDirectoryURI").on("change", async function (event) {
@@ -150,7 +162,7 @@
 
                     //TODO: Use description and title
                     updateParameterLabels(actionObject);
-                    updateOutputLabel(actionObject)
+                    updateOutputLabel(actionObject);
 
                     enableDeploy();
                 });
@@ -172,6 +184,11 @@
 
                     index++;
                 }
+
+                let selection = functionSelect.options[functionSelect.selectedIndex];
+                let actionObject = $(selection).data("value");
+                updateParameterLabels(actionObject);
+                updateOutputLabel(actionObject);
             }
 
             function emptyFunctionsSelect() {
@@ -317,7 +334,7 @@
     }
 </style>
 
-<script type="text/html" data-template-name="system-node">
+<script type="text/html" data-template-name="system-action-node">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -327,7 +344,7 @@
         <input type="text" id="node-input-thingDirectoryURI" placeholder="http://localhost:8080/td">
     </div>
     <div id="function-row" class="form-row">
-        <label for="node-input-thingFunction"><i class="fa fa-tag"></i> Thing Function</label>
+        <label for="node-input-thingFunction"><i class="fa fa-tag"></i> Action</label>
         <select name="functionSelect" id="node-input-thingFunction">
             <option>Placeholder</option>
         </select>
@@ -348,6 +365,6 @@
     <input type="hidden" id="node-input-redeploy" name="holder">
 </script>
 
-<script type="text/html" data-help-name="system-node">
-    <p>A node describing all Things held within its ThingDirectory</p>
+<script type="text/html" data-help-name="system-action-node">
+    <p>A node describing all Thing actions held within its ThingDirectory</p>
 </script>
