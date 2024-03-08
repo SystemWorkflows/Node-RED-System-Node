@@ -17,9 +17,9 @@ module.exports = function (RED) {
                 {
                     method: "POST",
                     headers: new Headers({
-                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json"
                     }),
-                    body: msg.payload //Should be a list of parameters
+                    body: JSON.stringify(msg.payload) //Should be a list of parameters
                 }
             )
             .catch((reason) => {
