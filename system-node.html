@@ -31,6 +31,14 @@
             }
         },
         outputs: 1,
+        outputLabels: function () {
+            try {
+               return JSON.parse(this.thingFunctionValue).output["type"];
+            }
+            catch {
+                return "undefined";
+            }
+        },
         icon: "bridge.svg",
         label: function () {
             return this.name || "system-node";
@@ -45,8 +53,6 @@
             }
             else {
                 let actionObj = JSON.parse(node.thingFunctionValue);
-
-                console.log(actionObj);
 
                 updateParameterLabels(actionObj);
                 updateOutputLabel(actionObj)
