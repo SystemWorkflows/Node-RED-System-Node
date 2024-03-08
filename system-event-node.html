@@ -26,7 +26,7 @@
                 return this.name;
             }
             else if (this.thingEventValue) {
-                return JSON.parse(this.thingEventValue).action;
+                return JSON.parse(this.thingEventValue).event;
             }
             else {
                 return "system-event-node";
@@ -41,9 +41,14 @@
                 node.thingEventValue = "";
             }
             else {
-                let actionObj = JSON.parse(node.thingEventValue);
+                try {
+                    let eventObj = JSON.parse(node.thingEventValue);
 
-                updateOutputLabel(actionObj)
+                    updateOutputLabel(eventObj);
+                }
+                catch {
+                    node.thingFunctionValue = "";
+                }
             }
 
             $("#node-input-thingDirectoryURI").on("change", async function (event) {
@@ -94,18 +99,18 @@
                     return reason;
                 }
 
-                let actionMap = await getEvents(thingURIs);
+                let eventMap = await getEvents(thingURIs);
 
                 let eventSelect = document.getElementById("node-input-thingEvent");
 
-                if (Object.keys(actionMap).length === 0) { //No events
+                if (Object.keys(eventMap).length === 0) { //No events
                     let option = document.createElement("option");
                     option.innerHTML = "No events available";
 
                     eventSelect.appendChild(option);
                     eventSelect.disabled = true;
 
-                    // node.status({fill:"yellow",shape:"ring",text:"No actions found"}); //TODO: Allow status changes
+                    // node.status({fill:"yellow",shape:"ring",text:"No events found"}); //TODO: Allow status changes
 
                     document.getElementById("label-output").innerText = "";
 
@@ -128,28 +133,33 @@
                     node.thingEventValue = eventJSON;
 
                     //TODO: Use description and title
-                    updateOutputLabel(eventObject)
+                    updateOutputLabel(eventObject);
 
                     enableDeploy();
                 });
 
                 let index = 0;
-                for (let action of Object.keys(actionMap)) {
+                for (let event of Object.keys(eventMap)) {
                     let option = document.createElement('option');
 
-                    actionMap[action]["action"] = action; //Move action name from a key to a value
-                    $(option).data("value", actionMap[action]);
+                    eventMap[event]["event"] = event; //Move event name from a key to a value
+                    $(option).data("value", eventMap[event]);
 
-                    option.innerHTML = action;
+                    option.innerHTML = event;
 
                     eventSelect.appendChild(option);
 
-                    if (action === node.thingEvent) { //Select the thingEvent option
+                    if (event === node.thingEvent) { //Select the thingEvent option
                         eventSelect.selectedIndex = index;
                     }
 
                     index++;
                 }
+
+                let selection = eventSelect.options[eventSelect.selectedIndex];
+                let eventObject = $(selection).data("value");
+
+                updateOutputLabel(eventObject);
             }
 
             function emptyEventsSelect() {
@@ -173,7 +183,7 @@
              * @returns A map of events to the Thing URIs, output type, description and title
              */
             async function getEvents(uriList) {
-                let uriMap = {}; //Maps actions to the URIs they are associated with
+                let uriMap = {}; //Maps events to the URIs they are associated with
 
                 for (let uri of uriList) {
                     let events = await fetchObject(uri, "events");
@@ -189,13 +199,12 @@
 
                         let eventObj = events[event];
 
-                        uriMap[event]["output"] = eventObj["output"];
+                        uriMap[event]["output"] = eventObj["data"];
                         uriMap[event]["description"] = eventObj["description"];
                         uriMap[event]["title"] = eventObj["title"];
                     }
                 }
 
-                console.log(uriMap);
                 return uriMap;
             }
 
@@ -214,7 +223,7 @@
             }
 
             function enableDeploy() {
-                let holder = document.getElementById("node-input-redeploy");
+                let holder = document.getElementById("node-output-redeploy");
                 
                 if (holder.value !== "true") {
                     holder.value = "true";
@@ -224,8 +233,8 @@
                 }
             }
 
-            function updateOutputLabel(actionObject) {
-                let output = actionObject["output"];
+            function updateOutputLabel(eventObject) {
+                let output = eventObject["output"];
 
                 let outputHolder = document.getElementById("label-output");
 
