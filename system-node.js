@@ -27,7 +27,7 @@ module.exports = function (RED) {
             });
 
             if (outputToMsg) {
-                msg.payload = output;
+                msg.payload = await output.json();
             }
 
             node.send(msg);
