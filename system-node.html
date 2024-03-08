@@ -99,11 +99,11 @@
                 try {
                     thingURIs = await fetchThingURIs(tdURI);
                 }
-                catch {
+                catch (reason) {
                     //TODO: Handle failure (display error, with icon and notifiction)
-                    // status({fill:"red",shape:"ring",text:"Disconnected from Thing directory"});
+                    // node.status({fill:"red",shape:"ring",text:"Disconnected from Thing directory"});
                     // error("Failed to connect to Thing Directory");
-                    return;
+                    return reason;
                 }
 
                 let actionMap = await getActions(thingURIs);
@@ -294,6 +294,21 @@
     });
 </script>
 
+<style>
+    .parameterLabel {
+        vertical-align: top;
+        width: 60%;
+    }
+
+    #label-parameters {
+        width: 60%;
+    }
+
+    #label-output {
+        width: 60%;
+    }
+</style>
+
 <script type="text/html" data-template-name="system-node">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -311,11 +326,11 @@
 
         <div class="form-row">
             <label for="label-parameters"> Parameters</label>
-            <label id="label-parameters"></label>
+            <label id="label-parameters" class="parameterLabel"></label>
         </div>
         <div class="form-row">
             <label for="label-output"> Output Type</label>
-            <label id="label-output"></label>
+            <label id="label-output" class="parameterLabel"></label>
         </div>
     </div>
     <div class="form-row">
