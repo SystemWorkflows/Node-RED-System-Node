@@ -92,6 +92,8 @@
 
                 let actionMap = await getActions(thingURIs);
 
+                //TODO: Handle no found actions
+
                 let functionSelect = document.getElementById("node-input-thingFunction");
 
                 functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
@@ -105,7 +107,7 @@
                     this.thingFunctionValue = actionJSON;
                     node.thingFunctionValue = actionJSON;
 
-                    updateParameterLabels(actionObject);
+                    updateParameterLabels(actionObject); //TODO: Also include ouput type
 
                     enableDeploy();
                 });
@@ -217,10 +219,11 @@
                 }
             }
 
-            function formParameterText(params) {
+            function formParameterText(params) { //TODO: Look for params within "inputs.properties" if stated
                 let text = "";
 
                 for (let parameter of Object.keys(params)) {
+                    if (parameter === "type") continue; //Ignore "inputs.type"
                     text += parameter + " : " + params[parameter] + "\n";
                 }
 
