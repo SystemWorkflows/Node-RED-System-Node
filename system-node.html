@@ -90,11 +90,22 @@
                     //TODO: Handle failure (display error, with icon and notifiction)
                 }
 
-                let actionMap = await getActions(thingURIs);
-
-                //TODO: Handle no found actions
+                let actionMap = await getActions(thingURIs); //TODO: Include descriptions and outputs
 
                 let functionSelect = document.getElementById("node-input-thingFunction");
+
+                if (Object.keys(actionMap).length === 0) { //No actions
+                    let option = document.createElement("option");
+                    option.innerHTML = "No actions available";
+
+                    functionSelect.appendChild(option);
+                    functionSelect.disabled = true;
+
+                    document.getElementById("label-parameters").innerText = "";
+                    return;
+                }
+                
+                functionSelect.disabled = false;
 
                 functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
                     let selection = functionSelect.options[functionSelect.selectedIndex];
@@ -170,8 +181,16 @@
                         let params = actions[action]["input"];
                         if (params === undefined || params === null) continue;
 
+                        let usingProperties = false;
+                        if (Object.keys(params).includes("properties")) { // If "inputs.properties" exists, take paramaters from this
+                            params = params.properties;
+                            usingProperties = true;
+                        }
+
                         for (let parameter of Object.keys(params)) {
-                            let type = actions[action]["input"][parameter]["type"];
+                            if (!usingProperties && parameter === "type") continue; //Ignore "inputs.type"
+
+                            let type = params[parameter]["type"];
                             uriMap[action]["params"][parameter] = type; //Map parameter to it's type
                         }
                     }
@@ -219,11 +238,10 @@
                 }
             }
 
-            function formParameterText(params) { //TODO: Look for params within "inputs.properties" if stated
+            function formParameterText(params) {
                 let text = "";
 
                 for (let parameter of Object.keys(params)) {
-                    if (parameter === "type") continue; //Ignore "inputs.type"
                     text += parameter + " : " + params[parameter] + "\n";
                 }
 
