@@ -38,11 +38,18 @@
         oneditprepare: function () {
             var node = this;
 
+            // hideFunctionOption(); //TODO: Buffer options whilst waiting for connection to Thing Directory
+
             if(node.thingFunctionValue === undefined) { //Ensures value is added to this node object
                 node.thingFunctionValue = "";
             }
             else {
-                updateParameterLabels(JSON.parse(node.thingFunctionValue));
+                let actionObj = JSON.parse(node.thingFunctionValue);
+
+                console.log(actionObj);
+
+                updateParameterLabels(actionObj);
+                updateOutputLabel(actionObj)
             }
 
             $("#node-input-thingDirectoryURI").on("change", async function (event) {
@@ -88,9 +95,12 @@
                 }
                 catch {
                     //TODO: Handle failure (display error, with icon and notifiction)
+                    // status({fill:"red",shape:"ring",text:"Disconnected from Thing directory"});
+                    // error("Failed to connect to Thing Directory");
+                    return;
                 }
 
-                let actionMap = await getActions(thingURIs); //TODO: Include descriptions and outputs
+                let actionMap = await getActions(thingURIs);
 
                 let functionSelect = document.getElementById("node-input-thingFunction");
 
@@ -101,11 +111,17 @@
                     functionSelect.appendChild(option);
                     functionSelect.disabled = true;
 
+                    // node.status({fill:"yellow",shape:"ring",text:"No actions found"}); //TODO: Allow status changes
+
                     document.getElementById("label-parameters").innerText = "";
+                    document.getElementById("label-output").innerText = "";
+
                     return;
                 }
                 
                 functionSelect.disabled = false;
+
+                // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
 
                 functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
                     let selection = functionSelect.options[functionSelect.selectedIndex];
@@ -118,7 +134,9 @@
                     this.thingFunctionValue = actionJSON;
                     node.thingFunctionValue = actionJSON;
 
-                    updateParameterLabels(actionObject); //TODO: Also include ouput type
+                    //TODO: Use description and title
+                    updateParameterLabels(actionObject);
+                    updateOutputLabel(actionObject)
 
                     enableDeploy();
                 });
@@ -127,11 +145,8 @@
                 for (let action of Object.keys(actionMap)) {
                     let option = document.createElement('option');
 
-                    $(option).data("value", {
-                        action : action,
-                        uri : actionMap[action]["uri"],
-                        params : actionMap[action]["params"]
-                    }); //Map of action to Thing in data-value
+                    actionMap[action]["action"] = action; //Move action name from a key to a value
+                    $(option).data("value", actionMap[action]);
 
                     option.innerHTML = action;
 
@@ -163,7 +178,7 @@
 
             /**
              * Note: No action names may be duplicated in the system
-             * @returns A map of action to the Thing URIs and list of parameters (along with their types is provided)
+             * @returns A map of action to the Thing URIs, list of parameters (along with their types is provided), output type, description and title
              */
             async function getActions(uriList) {
                 let uriMap = {}; //Maps actions to the URIs they are associated with
@@ -175,10 +190,19 @@
                     for (let action of Object.keys(actions)) {
                         uriMap[action] = {
                             "uri" : uri,
-                            "params" : {}
+                            "params" : {},
+                            "output" : undefined,
+                            "description" : undefined,
+                            "title" : undefined
                         }; //Note: Will override an action if a duplicate occurs
 
-                        let params = actions[action]["input"];
+                        let actionObj = actions[action];
+
+                        uriMap[action]["output"] = actionObj["output"];
+                        uriMap[action]["description"] = actionObj["description"];
+                        uriMap[action]["title"] = actionObj["title"];
+
+                        let params = actionObj["input"];
                         if (params === undefined || params === null) continue;
 
                         let usingProperties = false;
@@ -238,6 +262,19 @@
                 }
             }
 
+            function updateOutputLabel(actionObject) {
+                let output = actionObject["output"];
+
+                let outputHolder = document.getElementById("label-output");
+
+                try {
+                    outputHolder.innerText = output["type"];
+                }
+                catch {
+                    outputHolder.innerText = "undefined";
+                }
+            }
+
             function formParameterText(params) {
                 let text = "";
 
@@ -269,6 +306,10 @@
         <div class="form-row">
             <label for="label-parameters"> Parameters</label>
             <label id="label-parameters"></label>
+        </div>
+        <div class="form-row">
+            <label for="label-output"> Output Type</label>
+            <label id="label-output"></label>
         </div>
     </div>
     <div class="form-row">
