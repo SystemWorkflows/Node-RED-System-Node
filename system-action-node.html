@@ -187,6 +187,10 @@
 
                 let selection = functionSelect.options[functionSelect.selectedIndex];
                 let actionObject = $(selection).data("value");
+
+                let actionJSON = JSON.stringify(actionObject);
+                node.thingFunctionValue = actionJSON;
+
                 updateParameterLabels(actionObject);
                 updateOutputLabel(actionObject);
             }

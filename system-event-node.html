@@ -159,6 +159,9 @@
                 let selection = eventSelect.options[eventSelect.selectedIndex];
                 let eventObject = $(selection).data("value");
 
+                let eventJSON = JSON.stringify(eventObject);
+                node.thingEventValue = eventJSON;
+
                 updateOutputLabel(eventObject);
             }
 
