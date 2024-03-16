@@ -1,4 +1,7 @@
-<script type="text/javascript">
+<script type="module">
+    const PORT = 3000;
+    const SERVER_URI = "http://localhost:" + PORT;
+
     RED.nodes.registerType('system-event-node', {
         category: 'Web of Things',
         color: '#a6bbcf',
@@ -122,6 +125,8 @@
                 // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
 
                 eventSelect.addEventListener("change", async function () { //Set thingEvent value to new selection
+                    await unsubscribeEvent(node.thingEventValue, node.thingEvent);
+
                     let selection = eventSelect.options[eventSelect.selectedIndex];
                     let eventObject = $(selection).data("value");
 
@@ -134,7 +139,6 @@
 
                     //TODO: Use description and title
                     updateOutputLabel(eventObject);
-
                     enableDeploy();
                 });
 
@@ -247,6 +251,19 @@
                 catch {
                     outputHolder.innerText = "undefined";
                 }
+            }
+
+            function unsubscribeEvent(thingEventValue, event) {
+                return fetch(SERVER_URI + "/unsubscribe", {
+                    method: "POST",
+                    headers: new Headers({
+                        "Content-Type": "application/json"
+                    }),
+                    body: JSON.stringify([thingEventValue.td, event])
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
             }
         }
     });

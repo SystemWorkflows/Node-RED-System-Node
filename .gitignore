@@ -1,4 +1,5 @@
 node_modules
+commands
 *.cmd
 *.sh
 .vscode

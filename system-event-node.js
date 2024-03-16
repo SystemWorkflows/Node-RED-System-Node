@@ -1,28 +1,5 @@
 'use strict'
 
-const { default: Servient } = require("@node-wot/core");
-const HttpClientFactory = require("@node-wot/binding-http").HttpClientFactory;
-const HttpsClientFactory = require("@node-wot/binding-http").HttpsClientFactory;
-const WSClientFactory = require('@node-wot/binding-websockets').WebSocketClientFactory
-const CoapClientFactory = require('@node-wot/binding-coap').CoapClientFactory
-const CoapsClientFactory = require('@node-wot/binding-coap').CoapsClientFactory
-const MqttClientFactory = require('@node-wot/binding-mqtt').MqttClientFactory
-// const OpcuaClientFactory = require('@node-wot/binding-opcua').OpcuaClientFactory
-// const ModbusClientFactory = require('@node-wot/binding-modbus').ModbusClientFactory
-
-const servient = new Servient();
-
-servient.addClientFactory(new HttpClientFactory());
-servient.addClientFactory(new HttpsClientFactory());
-servient.addClientFactory(new WSClientFactory());
-servient.addClientFactory(new CoapClientFactory());
-servient.addClientFactory(new CoapsClientFactory());
-servient.addClientFactory(new MqttClientFactory());
-// servient.addClientFactory(new OpcuaClientFactory());
-// servient.addClientFactory(new ModbusClientFactory());
-
-var WoTProm = servient.start();
-
 module.exports = function (RED) {
     function SystemEventNode(config) {
         RED.nodes.createNode(this, config);
@@ -76,7 +53,7 @@ module.exports = function (RED) {
 
         async function setUpEventSubscription(thingDescription, event) { //Logic taken from @node-wot
             let WoT = await WoTProm;
-
+            
             let consumedThing = await WoT.consume(thingDescription);
 
             try {
@@ -106,6 +83,7 @@ module.exports = function (RED) {
                 event,
                 async (response) => {
                     if (response) {
+                        console.log("GOT RESPONSE");
                         let payload;
 
                         try {
@@ -125,6 +103,7 @@ module.exports = function (RED) {
                     });
                 },
                 (err) => {
+                    console.log("GOT ERROR");
                     console.error('[error] subscribe events.', err);
                     node.error(`[error] subscribe events. err: ${err.toString()}`);
                     node.status({
