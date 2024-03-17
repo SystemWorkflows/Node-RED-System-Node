@@ -177,7 +177,7 @@
                     return response.json();
                 })
                 .catch((reason) => {
-                    throw reason;
+                    throw Error("Failed to access Thing directory");
                 });
             }
 

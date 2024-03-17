@@ -56,10 +56,9 @@ module.exports = function (RED) {
         async function setUpEventSubscription(thingDescription, event) { //Logic taken from @node-wot
             let WoT = await WoTProm;
 
-            let consumedThing = await WoT.consume(thingDescription);
-
-            try {
-                while (true) { //Repeat untill successful subscription
+            WoT.consume(thingDescription)
+            .then(async (consumedThing) => {
+                while (true) { //Repeat until successful subscription
                     let subscription = attemptSubscription(consumedThing, event);
 
                     if (subscription) {
@@ -68,8 +67,8 @@ module.exports = function (RED) {
 
                     await timeout();
                 }
-            }
-            catch(reason)  {
+            })
+            .catch((reason) => {
                 node.status({
                     fill: 'red',
                     shape: 'ring',
@@ -77,7 +76,7 @@ module.exports = function (RED) {
                 });
     
                 node.error(`[error] Failed to create consumed thing for events. err: ${reason.toString()}`);
-            }
+            });
         }
 
         function attemptSubscription(consumedThing, event) {
