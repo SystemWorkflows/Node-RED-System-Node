@@ -1,4 +1,6 @@
 <script type="text/javascript">
+    const PORT = 3000;
+
     RED.nodes.registerType('system-event-node', {
         category: 'Web of Things',
         color: '#a6bbcf',
@@ -122,13 +124,16 @@
                 // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
 
                 eventSelect.addEventListener("change", async function () { //Set thingEvent value to new selection
+                    let thingEventObj = JSON.parse(node.thingEventValue);
+
+                    await unsubscribeEvent(thingEventObj.uri, thingEventObj.event);
+
                     let selection = eventSelect.options[eventSelect.selectedIndex];
                     let eventObject = $(selection).data("value");
 
                     node.thingEvent = selection.text;
                     
                     let eventJSON = JSON.stringify(eventObject); //Access object in select's data-value
-
                     this.thingEventValue = eventJSON;
                     node.thingEventValue = eventJSON;
 
@@ -226,7 +231,7 @@
             }
 
             function enableDeploy() {
-                let holder = document.getElementById("node-output-redeploy");
+                let holder = document.getElementById("node-input-redeploy");
                 
                 if (holder.value !== "true") {
                     holder.value = "true";
@@ -247,6 +252,19 @@
                 catch {
                     outputHolder.innerText = "undefined";
                 }
+            }
+
+            function unsubscribeEvent(uri, event) {
+                return fetch("http://localhost:" + PORT + "/unsubscribe", { 
+                    method: "POST",
+                    headers: new Headers({
+                        "Content-Type": "application/json"
+                    }),
+                    body: JSON.stringify({uri, event})
+                })
+                .catch((reason) => {
+                    throw new Error("Failed to unsubscribe from " + event);
+                });
             }
         }
     });
@@ -283,7 +301,7 @@
             <label id="label-output" class="parameterLabel"></label>
         </div>
     </div>
-    <input type="hidden" id="node-output-redeploy" name="holder">
+    <input type="hidden" id="node-input-redeploy" name="holder">
 </script>
 
 <script type="text/html" data-help-name="system-event-node">

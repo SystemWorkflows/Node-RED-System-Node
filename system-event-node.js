@@ -1,27 +1,8 @@
 'use strict'
 
-const { default: Servient } = require("@node-wot/core");
-const HttpClientFactory = require("@node-wot/binding-http").HttpClientFactory;
-const HttpsClientFactory = require("@node-wot/binding-http").HttpsClientFactory;
-const WSClientFactory = require('@node-wot/binding-websockets').WebSocketClientFactory
-const CoapClientFactory = require('@node-wot/binding-coap').CoapClientFactory
-const CoapsClientFactory = require('@node-wot/binding-coap').CoapsClientFactory
-const MqttClientFactory = require('@node-wot/binding-mqtt').MqttClientFactory
-// const OpcuaClientFactory = require('@node-wot/binding-opcua').OpcuaClientFactory
-// const ModbusClientFactory = require('@node-wot/binding-modbus').ModbusClientFactory
+const WoTProm = require("./WoTSingleton.js").getInstance();
 
-const servient = new Servient();
-
-servient.addClientFactory(new HttpClientFactory());
-servient.addClientFactory(new HttpsClientFactory());
-servient.addClientFactory(new WSClientFactory());
-servient.addClientFactory(new CoapClientFactory());
-servient.addClientFactory(new CoapsClientFactory());
-servient.addClientFactory(new MqttClientFactory());
-// servient.addClientFactory(new OpcuaClientFactory());
-// servient.addClientFactory(new ModbusClientFactory());
-
-var WoTProm = servient.start();
+var subscriptions = {}; //TODO: Handle multiple subscriptions to the same event
 
 module.exports = function (RED) {
     function SystemEventNode(config) {
@@ -39,21 +20,30 @@ module.exports = function (RED) {
             //Do nothing
         }
 
-        if (!thingEventValue.uri) {
+        let uri = thingEventValue.uri;
+        let event = thingEventValue.event;
+
+        if (!uri) {
             this.status({ fill: 'red', shape: 'dot', text: 'Error: Thing undefined' });
             return;
-        } else if (!thingEventValue.event) {
+        } else if (!event) {
             this.status({ fill: 'red', shape: 'dot', text: 'Error: Choose an event' });
             return;
         }
 
         fetch(
-            thingEventValue.uri,
+            uri,
             { method: "GET" }
         )
         .then(async (response) => {
-            setUpEventSubscription(await response.json(), thingEventValue.event);
+            let thingDescription = await response.json();
+
+            let subscription = setUpEventSubscription(thingDescription, event);
             
+            subscriptions[{uri, event}] = await subscription;
+
+            console.log(subscribed);
+
             node.subscription = subscription;
 
             if (node.subscription) {
@@ -71,22 +61,26 @@ module.exports = function (RED) {
                 text: 'Connection error',
             });
 
-            node.error(`[error] Failed to access ` + thingEventValue.uri);
+            node.error(`[error] Failed to access ` + uri);
         });
 
         async function setUpEventSubscription(thingDescription, event) { //Logic taken from @node-wot
             let WoT = await WoTProm;
-
+            
             let consumedThing = await WoT.consume(thingDescription);
 
             try {
-                while (true) { //Repeat untill successful subscription
-                    let subscription = attemptSubscription(consumedThing, event);
+                while (true) { //Repeat until successful subscription
+                    console.log("before");
+                    let subscription = await attemptSubscription(consumedThing, event);
+                    console.log("Sub " + JSON.stringify(subscription));
 
                     if (subscription) {
+                        console.log("Sub " + subscription);
                         return subscription;
                     }
 
+                    console.log("timeout");
                     await timeout();
                 }
             }
@@ -102,7 +96,7 @@ module.exports = function (RED) {
         }
 
         function attemptSubscription(consumedThing, event) {
-            let subscription = consumedThing.subscribeEvent(
+            return consumedThing.subscribeEvent(
                 event,
                 async (response) => {
                     if (response) {
@@ -143,12 +137,10 @@ module.exports = function (RED) {
             .catch((err) => {
                 console.warn('[warn] event subscription error. try again. error: ' + err);
             });
-
-            return subscription;
         }
 
         async function timeout() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 setTimeout(
                     () => resolve(),
                     500
@@ -159,3 +151,34 @@ module.exports = function (RED) {
 
     RED.nodes.registerType('system-event-node', SystemEventNode);
 }
+
+//========= Unsubscribe server ==========
+const express = require('express');
+var cors = require('cors')
+const app = express();
+const serverConfig = require("./serverConfig.json");
+const bodyParser = require('body-parser');
+
+const port = serverConfig.port;
+app.use(cors());
+const jsonParser = bodyParser.json()
+
+function unsubscribe(req, res) {
+    let uri = req.body.uri;
+    let event = req.body.event;
+
+    console.log("subs " + subscriptions[{uri, event}]);
+
+    subscriptions[{uri, event}].stop()
+    .catch((err) => {
+        res.err('[warn] event unsubscribe error. try again. error: ' + err);
+    });
+}
+app.post('/unsubscribe', jsonParser,unsubscribe);
+
+app.get('/test', (req, res) => res.send("Server response"));
+
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
