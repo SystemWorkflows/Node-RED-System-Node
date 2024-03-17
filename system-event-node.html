@@ -226,7 +226,7 @@
             }
 
             function enableDeploy() {
-                let holder = document.getElementById("node-output-redeploy");
+                let holder = document.getElementById("node-input-redeploy");
                 
                 if (holder.value !== "true") {
                     holder.value = "true";
@@ -283,7 +283,7 @@
             <label id="label-output" class="parameterLabel"></label>
         </div>
     </div>
-    <input type="hidden" id="node-output-redeploy" name="holder">
+    <input type="hidden" id="node-input-redeploy" name="holder">
 </script>
 
 <script type="text/html" data-help-name="system-event-node">

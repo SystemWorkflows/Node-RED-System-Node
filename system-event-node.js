@@ -1,27 +1,6 @@
 'use strict'
 
-const { default: Servient } = require("@node-wot/core");
-const HttpClientFactory = require("@node-wot/binding-http").HttpClientFactory;
-const HttpsClientFactory = require("@node-wot/binding-http").HttpsClientFactory;
-const WSClientFactory = require('@node-wot/binding-websockets').WebSocketClientFactory
-const CoapClientFactory = require('@node-wot/binding-coap').CoapClientFactory
-const CoapsClientFactory = require('@node-wot/binding-coap').CoapsClientFactory
-const MqttClientFactory = require('@node-wot/binding-mqtt').MqttClientFactory
-// const OpcuaClientFactory = require('@node-wot/binding-opcua').OpcuaClientFactory
-// const ModbusClientFactory = require('@node-wot/binding-modbus').ModbusClientFactory
-
-const servient = new Servient();
-
-servient.addClientFactory(new HttpClientFactory());
-servient.addClientFactory(new HttpsClientFactory());
-servient.addClientFactory(new WSClientFactory());
-servient.addClientFactory(new CoapClientFactory());
-servient.addClientFactory(new CoapsClientFactory());
-servient.addClientFactory(new MqttClientFactory());
-// servient.addClientFactory(new OpcuaClientFactory());
-// servient.addClientFactory(new ModbusClientFactory());
-
-var WoTProm = servient.start();
+const WoTProm = require("./WoTSingleton").getInstance();
 
 module.exports = function (RED) {
     function SystemEventNode(config) {
