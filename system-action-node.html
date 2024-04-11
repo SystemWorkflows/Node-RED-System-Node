@@ -5,8 +5,8 @@
         defaults: {
             name: { value: "" },
             thingDirectoryURI: { value: "" },
-            thingFunction: { value: "" },
-            thingFunctionValue: { value: "" }, //TODO: Change use of "Function" to "Action" for consistency of wording
+            thingAction: { value: "" },
+            thingActionValue: { value: "" },
             outputToMsg: { value: true },
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
@@ -15,7 +15,7 @@
             let text = "";
 
             try {
-                text = formParameterText(JSON.parse(this.thingFunctionValue).params);
+                text = formParameterText(JSON.parse(this.thingActionValue).params);
             }
             catch {
                 return "";
@@ -40,7 +40,7 @@
         outputs: 1,
         outputLabels: function () {
             try {
-               return JSON.parse(this.thingFunctionValue).output["type"];
+               return JSON.parse(this.thingActionValue).output["type"];
             }
             catch {
                 return "undefined";
@@ -51,8 +51,8 @@
             if (this.name) {
                 return this.name;
             }
-            else if (this.thingFunctionValue) {
-                return JSON.parse(this.thingFunctionValue).action;
+            else if (this.thingActionValue) {
+                return JSON.parse(this.thingActionValue).action;
             }
             else {
                 return "system-action-node";
@@ -63,18 +63,18 @@
 
             // hideFunctionOption(); //TODO: Buffer options whilst waiting for connection to Thing Directory
 
-            if(node.thingFunctionValue === undefined) { //Ensures value is added to this node object
-                node.thingFunctionValue = "";
+            if(node.thingActionValue === undefined) { //Ensures value is added to this node object
+                node.thingActionValue = "";
             }
             else {
                 try {
-                    let actionObj = JSON.parse(node.thingFunctionValue);
+                    let actionObj = JSON.parse(node.thingActionValue);
 
                     updateParameterLabels(actionObj);
                     updateOutputLabel(actionObj);
                 }
                 catch {
-                    node.thingFunctionValue = "";
+                    node.thingActionValue = "";
                 }
             }
 
@@ -84,35 +84,35 @@
                 let emptyInput = ["", undefined, null].includes(input);
 
                 if (!emptyInput) {
-                    await populateFunctions(input, node);
+                    await populateActions(input, node);
                 }
 
-                displayFunctionOption(!emptyInput);
+                displayActionOption(!emptyInput);
             });
 
-            function showFunctionOption() {
-                $("div#function-row").show();
+            function showActionOption() {
+                $("div#action-row").show();
             }
 
-            function hideFunctionOption() {
-                $("#node-input-thingFunction").innerText = "";
-                this.thingFunction = "";
-                $("div#function-row").hide();
+            function hideActionOption() {
+                $("#node-input-thingAction").innerText = "";
+                this.thingAction = "";
+                $("div#action-row").hide();
             }
 
-            function displayFunctionOption(on) {
+            function displayActionOption(on) {
                 if (on) {
-                    showFunctionOption();
+                    showActionOption();
                 } else {
-                    hideFunctionOption();
+                    hideActionOption();
                 }
             }
 
             /**
              * @returns Boolean, the completion of this functionality
              */
-            async function populateFunctions(tdURI, node) {
-                emptyFunctionsSelect();
+            async function populateActions(tdURI, node) {
+                emptyActionsSelect();
 
                 let thingURIs;
 
@@ -128,14 +128,14 @@
 
                 let actionMap = await getActions(thingURIs);
 
-                let functionSelect = document.getElementById("node-input-thingFunction");
+                let actionSelect = document.getElementById("node-input-thingAction");
 
                 if (Object.keys(actionMap).length === 0) { //No actions
                     let option = document.createElement("option");
                     option.innerHTML = "No actions available";
 
-                    functionSelect.appendChild(option);
-                    functionSelect.disabled = true;
+                    actionSelect.appendChild(option);
+                    actionSelect.disabled = true;
 
                     // node.status({fill:"yellow",shape:"ring",text:"No actions found"}); //TODO: Allow status changes
 
@@ -145,20 +145,20 @@
                     return;
                 }
                 
-                functionSelect.disabled = false;
+                actionSelect.disabled = false;
 
                 // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
 
-                functionSelect.addEventListener("change", async function () { //Set thingFunction value to new selection
-                    let selection = functionSelect.options[functionSelect.selectedIndex];
+                actionSelect.addEventListener("change", async function () { //Set thingAction value to new selection
+                    let selection = actionSelect.options[actionSelect.selectedIndex];
                     let actionObject = $(selection).data("value");
 
-                    node.thingFunction = selection.text;
+                    node.thingAction = selection.text;
                     
                     let actionJSON = JSON.stringify(actionObject); //Access object in select's data-value
 
-                    this.thingFunctionValue = actionJSON;
-                    node.thingFunctionValue = actionJSON;
+                    this.thingActionValue = actionJSON;
+                    node.thingActionValue = actionJSON;
 
                     //TODO: Use description and title
                     updateParameterLabels(actionObject);
@@ -176,27 +176,27 @@
 
                     option.innerHTML = action;
 
-                    functionSelect.appendChild(option);
+                    actionSelect.appendChild(option);
 
-                    if (action === node.thingFunction) { //Select the thingFunction option
-                        functionSelect.selectedIndex = index;
+                    if (action === node.thingAction) { //Select the thingAction option
+                        actionSelect.selectedIndex = index;
                     }
 
                     index++;
                 }
 
-                let selection = functionSelect.options[functionSelect.selectedIndex];
+                let selection = actionSelect.options[actionSelect.selectedIndex];
                 let actionObject = $(selection).data("value");
 
                 let actionJSON = JSON.stringify(actionObject);
-                node.thingFunctionValue = actionJSON;
+                node.thingActionValue = actionJSON;
 
                 updateParameterLabels(actionObject);
                 updateOutputLabel(actionObject);
             }
 
-            function emptyFunctionsSelect() {
-                $("select#node-input-thingFunction").empty();
+            function emptyActionsSelect() {
+                $("select#node-input-thingAction").empty();
             }
 
             async function fetchThingURIs(tdURI) {
@@ -347,9 +347,9 @@
         <label for="node-input-thingDirectoryURI"><i class="fa fa-tag"></i> Thing Directory</label>
         <input type="text" id="node-input-thingDirectoryURI" placeholder="http://localhost:8080/td">
     </div>
-    <div id="function-row" class="form-row">
-        <label for="node-input-thingFunction"><i class="fa fa-tag"></i> Action</label>
-        <select name="functionSelect" id="node-input-thingFunction">
+    <div id="action-row" class="form-row">
+        <label for="node-input-thingAction"><i class="fa fa-tag"></i> Action</label>
+        <select name="actionSelect" id="node-input-thingAction">
             <option>Placeholder</option>
         </select>
 

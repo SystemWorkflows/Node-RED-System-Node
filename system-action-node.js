@@ -7,10 +7,10 @@ module.exports = function (RED) {
         var outputToMsg = config.outputToMsg;
 
         node.on('input', async function (msg, send, done) {
-            let thingFunctionValue = JSON.parse(config.thingFunctionValue);
+            let thingActionValue = JSON.parse(config.thingActionValue);
 
-            let thingURI = thingFunctionValue.uri;
-            let action = thingFunctionValue.action;
+            let thingURI = thingActionValue.uri;
+            let action = thingActionValue.action;
 
             let output = await fetch(
                 thingURI + "/actions/" + action, 
