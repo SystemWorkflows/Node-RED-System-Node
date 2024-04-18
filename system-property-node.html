@@ -1,0 +1,289 @@
+<script type="text/javascript">
+    RED.nodes.registerType('system-property-node', {
+        category: 'Web of Things',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: "" },
+            thingDirectoryURI: { value: "" },
+            thingProperty: { value: "" },
+            thingPropertyValue: { value: "" },
+            redeploy: { value: "false" } //Only used to trigger UI redeploy
+        },
+        inputs: 1,
+        outputs: 1,
+        outputLabels: function () {
+            try {
+               return JSON.parse(this.thingPropertyValue)["type"];
+            }
+            catch {
+                return "undefined";
+            }
+        },
+        icon: "bridge.svg",
+        label: function () {
+            if (this.name) {
+                return this.name;
+            }
+            else if (this.thingPropertyValue) {
+                return JSON.parse(this.thingPropertyValue).property;
+            }
+            else {
+                return "system-property-node";
+            }
+        },
+        oneditprepare: function () {
+            var node = this;
+
+            // hideFunctionOption(); //TODO: Buffer options whilst waiting for connection to Thing Directory
+
+            if(node.thingPropertyValue === undefined) { //Ensures value is added to this node object
+                node.thingPropertyValue = "";
+            }
+            else {
+                try {
+                    let propertyObj = JSON.parse(node.thingPropertyValue);
+
+                    updateTypeLabel(propertyObj);
+                }
+                catch {
+                    node.thingPropertyValue = "";
+                }
+            }
+
+            $("#node-input-thingDirectoryURI").on("change", async function (event) {
+                let input = $(this).val();
+
+                let emptyInput = ["", undefined, null].includes(input);
+
+                if (!emptyInput) {
+                    await populateProperties(input, node);
+                }
+
+                displayPropertyOption(!emptyInput);
+            });
+
+            function showPropertyOption() {
+                $("div#property-row").show();
+            }
+
+            function hidePropertyOption() {
+                $("#node-input-thingProperty").innerText = "";
+                this.thingProperty = "";
+                $("div#property-row").hide();
+            }
+
+            function displayPropertyOption(on) {
+                if (on) {
+                    showPropertyOption();
+                } else {
+                    hidePropertyOption();
+                }
+            }
+
+            /**
+             * @returns Boolean, the completion of this functionality
+             */
+            async function populateProperties(tdURI, node) {
+                emptyPropertiesSelect();
+
+                let thingURIs;
+
+                try {
+                    thingURIs = await fetchThingURIs(tdURI);
+                }
+                catch (reason) {
+                    //TODO: Handle failure (display error, with icon and notifiction)
+                    // node.status({fill:"red",shape:"ring",text:"Disconnected from Thing directory"});
+                    // error("Failed to connect to Thing Directory");
+                    return reason;
+                }
+
+                let propertyMap = await getProperties(thingURIs);
+
+                let propertySelect = document.getElementById("node-input-thingProperty");
+
+                if (Object.keys(propertyMap).length === 0) { //No properties
+                    let option = document.createElement("option");
+                    option.innerHTML = "No properties available";
+
+                    propertySelect.appendChild(option);
+                    propertySelect.disabled = true;
+
+                    // node.status({fill:"yellow",shape:"ring",text:"No properties found"}); //TODO: Allow status changes
+
+                    document.getElementById("label-type").innerText = "";
+
+                    return;
+                }
+                
+                propertySelect.disabled = false;
+
+                // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
+
+                propertySelect.addEventListener("change", async function () { //Set thingProperty value to new selection
+                    let selection = propertySelect.options[propertySelect.selectedIndex];
+                    let propertyObject = $(selection).data("value");
+
+                    node.thingProperty = selection.text;
+                    
+                    let propertyJSON = JSON.stringify(propertyObject); //Access object in select's data-value
+
+                    this.thingPropertyValue = propertyJSON;
+                    node.thingPropertyValue = propertyJSON;
+
+                    //TODO: Use description and title
+                    updateTypeLabel(propertyObject);
+
+                    enableDeploy();
+                });
+
+                let index = 0;
+                for (let property of Object.keys(propertyMap)) {
+                    let option = document.createElement('option');
+
+                    propertyMap[property]["property"] = property; //Move property name from a key to a value
+                    $(option).data("value", propertyMap[property]);
+
+                    option.innerHTML = property;
+
+                    propertySelect.appendChild(option);
+
+                    if (property === node.thingProperty) { //Select the thingProperty option
+                        propertySelect.selectedIndex = index;
+                    }
+
+                    index++;
+                }
+
+                let selection = propertySelect.options[propertySelect.selectedIndex];
+                let propertyObject = $(selection).data("value");
+
+                let propertyJSON = JSON.stringify(propertyObject);
+                node.thingPropertyValue = propertyJSON;
+
+                updateTypeLabel(propertyObject);
+            }
+
+            function emptyPropertiesSelect() {
+                $("select#node-input-thingProperty").empty();
+            }
+
+            async function fetchThingURIs(tdURI) {
+                return fetch(tdURI + "/actions/getURIs", {
+                    method: "POST"
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
+            }
+
+            /**
+             * Note: No property names may be duplicated in the system
+             * @returns A map of property to the Thing URIs, output type, description and title
+             */
+            async function getProperties(uriList) {
+                let uriMap = {}; //Maps properties to the URIs they are associated with
+
+                for (let uri of uriList) {
+                    let properties = await fetchObject(uri, "properties");
+                    if (properties === undefined) continue;
+
+                    for (let property of Object.keys(properties)) {
+                        uriMap[property] = {
+                            "uri" : uri,
+                            "type" : undefined,
+                            "description" : undefined,
+                            "title" : undefined
+                        }; //Note: Will override an property if a duplicate occurs
+
+                        let propertyObj = properties[property];
+
+                        uriMap[property]["type"] = propertyObj["type"];
+                        uriMap[property]["description"] = propertyObj["description"];
+                        uriMap[property]["title"] = propertyObj["title"];
+                    }
+                }
+
+                return uriMap;
+            }
+
+            async function fetchObject(uri, key) {
+                let response = await fetch(uri, {
+                    method: "GET"
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .catch((reason) => {
+                    throw reason;
+                });
+
+                return response[key]; //Only allows keys from top-level
+            }
+
+            function enableDeploy() {
+                let holder = document.getElementById("node-input-redeploy");
+                
+                if (holder.value !== "true") {
+                    holder.value = "true";
+                }
+                else {
+                    holder.value = "false";
+                }
+            }
+
+            function updateTypeLabel(propertyObject) {
+                let type = propertyObject["type"];
+
+                let typeHolder = document.getElementById("label-type");
+                
+                typeHolder.innerText = type;
+            }
+        }
+    });
+</script>
+
+<style>
+    .parameterLabel {
+        vertical-align: top;
+        width: 60%;
+    }
+
+    #label-parameters {
+        width: 60%;
+    }
+
+    #label-type {
+        width: 60%;
+    }
+</style>
+
+<script type="text/html" data-template-name="system-property-node">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-thingDirectoryURI"><i class="fa fa-tag"></i> Thing Directory</label>
+        <input type="text" id="node-input-thingDirectoryURI" placeholder="http://localhost:8080/td">
+    </div>
+    <div id="property-row" class="form-row">
+        <label for="node-input-thingProperty"><i class="fa fa-tag"></i> Property</label>
+        <select name="propertySelect" id="node-input-thingProperty">
+            <option>Placeholder</option>
+        </select>
+
+        <div class="form-row">
+            <label for="label-type"> Type</label>
+            <label id="label-type" class="parameterLabel"></label>
+        </div>
+    </div>
+    <input type="hidden" id="node-input-redeploy" name="holder">
+</script>
+
+<script type="text/html" data-help-name="system-property-node">
+    <p>A node describing all Thing properties held within its ThingDirectory</p>
+</script>

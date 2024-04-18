@@ -13,7 +13,8 @@
     "node-red": {
         "nodes": {
             "system-action-node": "system-action-node.js",
-            "system-event-node": "system-event-node.js"
+            "system-event-node": "system-event-node.js",
+            "system-property-node": "system-property-node.js"
         }
     },
     "devDependencies": {
