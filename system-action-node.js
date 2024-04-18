@@ -27,7 +27,17 @@ module.exports = function (RED) {
             });
 
             if (outputToMsg) {
-                msg.payload = await output.json();
+                try {
+                    msg.payload = await output.json();
+                }
+                catch(error) {
+                    if(error.message === "Unexpected end of JSON input"){ //Handle null action output
+                        msg.payload = null;
+                    }
+                    else {
+                        msg.payload = error;
+                    }
+                }
             }
 
             node.send(msg);
