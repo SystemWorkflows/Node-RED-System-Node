@@ -7,7 +7,7 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         let node = this;
 
-        this.subscription = undefined;
+        node.subscribed = false;
         this.status({});
 
         var thingEventValue = {};
@@ -33,9 +33,9 @@ module.exports = function (RED) {
         .then(async (response) => {
             setUpEventSubscription(await response.json(), thingEventValue.event);
             
-            node.subscription = subscription;
+            node.subscribed = true;
 
-            if (node.subscription) {
+            if (node.subscribed) {
                 node.status({
                     fill: 'green',
                     shape: 'dot',
@@ -61,9 +61,7 @@ module.exports = function (RED) {
                 while (true) { //Repeat until successful subscription
                     let subscription = attemptSubscription(consumedThing, event);
 
-                    if (subscription) {
-                        return subscription;
-                    }
+                    if (subscription) return subscription;
 
                     await timeout();
                 }
@@ -88,11 +86,13 @@ module.exports = function (RED) {
 
                         try {
                             payload = await response.value();
+                            console.log("payload: " + payload);
                         } catch (err) {
-                            node.error(`[error] failed to get event. err: ${err.toString()}`);
-                            console.error(`[error] failed to get event. err: `, err);
+                            node.error(`[error] failed to read event value. ${err.toString()}`);
+                            return;
                         }
 
+                        console.log("sending : " + payload);
                         node.send({ payload });
                     }
 
@@ -104,7 +104,7 @@ module.exports = function (RED) {
                 },
                 (err) => {
                     console.error('[error] subscribe events.', err);
-                    node.error(`[error] subscribe events. err: ${err.toString()}`);
+                    node.error(`[error] subscribe events. ${err.toString()}`);
                     node.status({
                         fill: 'red',
                         shape: 'ring',
@@ -115,11 +115,10 @@ module.exports = function (RED) {
                     console.error('[warn] Subscription ended.');
                     node.warn('[warn] Subscription ended.');
                     node.status({});
-                    node.subscription = undefined;
                 }
             )
             .catch((err) => {
-                console.warn('[warn] event subscription error. try again. error: ' + err);
+                console.warn('[warn] event subscription error. try again. ' + err);
             });
 
             return subscription;

@@ -2,3 +2,4 @@ node_modules
 *.cmd
 *.sh
 .vscode
+package-lock.json
