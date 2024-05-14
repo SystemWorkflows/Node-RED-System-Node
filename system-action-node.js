@@ -23,7 +23,7 @@ module.exports = function (RED) {
                 }
             )
             .catch((reason) => {
-                node.error("Failed to invoke action", reason);
+                node.error("Failed to invoke action. " + reason);
             });
 
             if (outputToMsg) {
