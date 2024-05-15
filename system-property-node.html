@@ -7,6 +7,7 @@
             thingDirectoryURI: { value: "" },
             thingProperty: { value: "" },
             thingPropertyValue: { value: "" },
+            mode: { value: "Read" },
             redeploy: { value: "false" } //Only used to trigger UI redeploy
         },
         inputs: 1,
@@ -34,6 +35,8 @@
         oneditprepare: function () {
             var node = this;
 
+            setUpModeSelect();
+
             // hideFunctionOption(); //TODO: Buffer options whilst waiting for connection to Thing Directory
 
             if(node.thingPropertyValue === undefined) { //Ensures value is added to this node object
@@ -55,9 +58,7 @@
 
                 let emptyInput = ["", undefined, null].includes(input);
 
-                if (!emptyInput) {
-                    await populateProperties(input, node);
-                }
+                if (!emptyInput) await populateProperties(input, node);
 
                 displayPropertyOption(!emptyInput);
             });
@@ -117,8 +118,6 @@
                 }
                 
                 propertySelect.disabled = false;
-
-                // node.status({fill:"green",shape:"dot",text:"connected"}); //TODO: Allow status changes
 
                 propertySelect.addEventListener("change", async function () { //Set thingProperty value to new selection
                     let selection = propertySelect.options[propertySelect.selectedIndex];
@@ -242,6 +241,18 @@
                 
                 typeHolder.innerText = type;
             }
+
+            function setUpModeSelect() {
+                $("#node-input-mode").typedInput({
+                    types: [{
+                        value: "mode",
+                        options: [
+                            { value: "read", label: "Read"},
+                            { value: "write", label: "Write"}
+                        ]
+                    }]
+                })
+            }
         }
     });
 </script>
@@ -280,6 +291,10 @@
             <label for="label-type"> Type</label>
             <label id="label-type" class="parameterLabel"></label>
         </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-tag"></i> Mode</label>
+        <input name="modeSelect" id="node-input-mode">
     </div>
     <input type="hidden" id="node-input-redeploy" name="holder">
 </script>
