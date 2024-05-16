@@ -86,13 +86,11 @@ module.exports = function (RED) {
 
                         try {
                             payload = await response.value();
-                            console.log("payload: " + payload);
                         } catch (err) {
                             node.error(`[error] failed to read event value. ${err.toString()}`);
                             return;
                         }
 
-                        console.log("sending : " + payload);
                         node.send({ payload });
                     }
 
