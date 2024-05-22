@@ -26,32 +26,42 @@ module.exports = function (RED) {
             return;
         }
 
-        fetch(
-            thingEventValue.uri,
-            { method: "GET" }
-        )
-        .then(async (response) => {
-            setUpEventSubscription(await response.json(), thingEventValue.event);
-            
-            node.subscribed = true;
+        fetchEvents(thingEventValue.uri);
 
-            if (node.subscribed) {
+        /**
+         * Fetches the events from the given uri and initiates event subscription when successful
+         * @param {*} uri The uri of the Thing to be queried
+         */
+        function fetchEvents(uri) {
+            fetch(
+                uri,
+                { method: "GET" }
+            )
+            .then(async (response) => {
+                setUpEventSubscription(await response.json(), thingEventValue.event);
+                
+                node.subscribed = true;
+
+                if (node.subscribed) {
+                    node.status({
+                        fill: 'green',
+                        shape: 'dot',
+                        text: 'Subscribed',
+                    });
+                }
+            })
+            .catch((reason) => {
                 node.status({
-                    fill: 'green',
-                    shape: 'dot',
-                    text: 'Subscribed',
+                    fill: 'red',
+                    shape: 'ring',
+                    text: 'Connection error',
                 });
-            }
-        })
-        .catch((reason) => {
-            node.status({
-                fill: 'red',
-                shape: 'ring',
-                text: 'Connection error',
-            });
 
-            node.error(`[error] Failed to access ` + thingEventValue.uri);
-        });
+                node.error(`[error] Failed to access ` + thingEventValue.uri);
+
+                setTimeout(() => fetchEvents(uri), 5000);
+            });
+        }
 
         async function setUpEventSubscription(thingDescription, event) { //Logic taken from @node-wot
             let WoT = await WoTProm;
@@ -78,7 +88,7 @@ module.exports = function (RED) {
         }
 
         function attemptSubscription(consumedThing, event) {
-            let subscription = consumedThing.subscribeEvent(
+            return consumedThing.subscribeEvent(
                 event,
                 async (response) => {
                     if (response) {
@@ -108,18 +118,13 @@ module.exports = function (RED) {
                         shape: 'ring',
                         text: 'Subscription error',
                     });
-                },
-                () => {
-                    console.error('[warn] Subscription ended.');
-                    node.warn('[warn] Subscription ended.');
-                    node.status({});
+
+                    setTimeout(() => attemptSubscription(consumedThing, event), 5000);
                 }
             )
             .catch((err) => {
                 console.warn('[warn] event subscription error. try again. ' + err);
             });
-
-            return subscription;
         }
 
         async function timeout() {

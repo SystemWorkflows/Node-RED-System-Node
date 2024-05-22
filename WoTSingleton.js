@@ -1,6 +1,6 @@
 'use strict'
 
-const Servient = require('@node-wot/core').Servient
+const Servient = require('@node-wot/core').Servient //TODO: Update framework to use "import * as WoT from "wot-typescript-definitions";"
 const HttpClientFactory = require('@node-wot/binding-http').HttpClientFactory
 const HttpsClientFactory = require('@node-wot/binding-http').HttpsClientFactory
 const WSClientFactory = require('@node-wot/binding-websockets').WebSocketClientFactory
