@@ -1,4 +1,4 @@
-# Node-RED System Node
+# Node-RED System Node Extension
 
 ### What is the project?
 
@@ -13,7 +13,7 @@ This project aims to enable IoT system workflows to be produced without the need
 These instructions will get you a copy of the project up and running on your local machine.
 
 ### Installing
-Note: These instructions are for Windows machines only, and requires npm and Node-RED to be installed.
+Note: These instructions are for Windows machines only, and require [npm](https://www.npmjs.com/) and [Node-RED](https://nodered.org/) to be installed.
 
 #### Clone this repository.
 
@@ -61,6 +61,8 @@ The following nodes should be visible within the **Web of Things** panel on the 
 - **system-action-node**
 - **system-event-node**
 - **system-property-node**
+
+Note: For the system to work a *Thing Directory* must be set up with the [Web of Things (WoT)](https://www.w3.org/WoT/) framework and made available. The Thing Directory must have an action called "getURIs" that will return a list of all *Thing* URIs for the Things connected to it.
 
 ## Contributing
 
