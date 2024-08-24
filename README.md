@@ -1,4 +1,4 @@
-# WoT System Node
+# Node-RED System Node
 
 ### What is the project?
 
